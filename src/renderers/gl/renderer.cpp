@@ -395,16 +395,43 @@ void mrg::Renderer::draw(mg::Renderable const& renderable) const
     auto const clip_area = renderable.clip_area();
     if (clip_area)
     {
+        // scale the clip area from virtual screen space to suit the render target
+        float scaleX = (float)render_target.size().width.as_int() / viewport.size.width.as_int();
+        float scaleY = (float)render_target.size().height.as_int() / viewport.size.height.as_int();
+
+        geom::Rectangle scaled_clip_area(
+            geom::Point(
+                std::floor((float)clip_area.value().top_left.x.as_int() * scaleX),
+                std::floor((float)clip_area.value().top_left.y.as_int() * scaleY)
+            ),
+            geom::Size(
+                std::ceil((float)clip_area.value().size.width.as_int() * scaleX),
+                std::ceil((float)clip_area.value().size.height.as_int() * scaleY)
+            )
+        );
+
+        geom::Rectangle scaled_viewport(
+            geom::Point(
+                std::floor((float)viewport.top_left.x.as_int() * scaleX),
+                std::floor((float)viewport.top_left.y.as_int() * scaleY)
+            ),
+            geom::Size(
+                std::ceil((float)viewport.size.width.as_int() * scaleX),
+                std::ceil((float)viewport.size.height.as_int() * scaleY)
+            )
+        );
+
         glEnable(GL_SCISSOR_TEST);
+
         glScissor(
-            clip_area.value().top_left.x.as_int() -
-                viewport.top_left.x.as_int(),
-            viewport.top_left.y.as_int() +
-                viewport.size.height.as_int() -
-                clip_area.value().top_left.y.as_int() -
-                clip_area.value().size.height.as_int(),
-            clip_area.value().size.width.as_int(), 
-            clip_area.value().size.height.as_int()
+            scaled_clip_area.top_left.x.as_int() -
+                scaled_viewport.top_left.x.as_int(),
+            scaled_viewport.top_left.y.as_int() +
+                scaled_viewport.size.height.as_int() -
+                scaled_clip_area.top_left.y.as_int() -
+                scaled_clip_area.size.height.as_int(),
+            scaled_clip_area.size.width.as_int(),
+            scaled_clip_area.size.height.as_int()
         );
     }
 
